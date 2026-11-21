@@ -1,0 +1,6 @@
+panels/
+compose.py
+prompt.txt
+system-prompt.txt
+out/
+__pycache__/
