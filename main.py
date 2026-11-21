@@ -10,6 +10,7 @@ image is resolved against this file's own directory, and the destination
 is always absolute.
 """
 
+import binascii
 import hashlib
 import os
 import shutil
@@ -58,6 +59,13 @@ def main():
     if (width, height) != (EXPECTED_WIDTH, EXPECTED_HEIGHT):
         return fail("dimensions mismatch: got %dx%d, expected %dx%d"
                     % (width, height, EXPECTED_WIDTH, EXPECTED_HEIGHT))
+    # The file must be whole: every chunk checksummed, ending in IEND.
+    ihdr_crc = struct.unpack(">I", data[29:33])[0]
+    if binascii.crc32(data[12:29]) & 0xFFFFFFFF != ihdr_crc:
+        return fail("IHDR chunk checksum mismatch")
+    if data[-12:] != struct.pack(">I", 0) + b"IEND" + struct.pack(
+            ">I", binascii.crc32(b"IEND") & 0xFFFFFFFF):
+        return fail("missing PNG IEND terminator")
     digest = hashlib.sha256(data).hexdigest()
     if digest != EXPECTED_SHA256:
         return fail("sha256 mismatch: got " + digest)
